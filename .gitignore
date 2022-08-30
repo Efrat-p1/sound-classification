@@ -1,0 +1,14 @@
+.venv
+.vscode
+*.txt
+*.csv
+*.pptx
+files_urban_sound
+archive
+*.npy
+*.wav
+*.gif
+*.pyc
+*.npz
+notes
+tests.py
