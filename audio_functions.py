@@ -17,13 +17,11 @@ def get_spectrogram_data(path, fft_size=1024,overlap_ratio=0, restrict_freq=(0,1
         data = audiodata.sum(axis=1) / 2
 
     N = len(data)  
-    time = N / samplerate                   #176400/44100 =time sec
-    freq = N/time                           #should get 22.05kHz
+    time = N / samplerate                   #176400/44100 =time sec                  
 
-    samplerate_fixed = 22050                        #22050*4 = 88200
+    samplerate_fixed = 22050                        #22050*4 = 88200  #should get 22.05kHz
     data = signal.resample(data, int(samplerate_fixed*time))  
     time = N/samplerate_fixed
-    freq = N/time 
     samplerate = samplerate_fixed
 
 

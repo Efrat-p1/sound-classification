@@ -19,5 +19,4 @@ print(len(y))
 num_classes = len(np.unique(y))
 print('num_classes: ', num_classes)
 
-
-model_exec1(np.mean(X, axis =2), y, test_size=0.25, random_state=1)
+model_exec2(np.mean(X, axis =2), y, test_size=0.25, random_state=1)
