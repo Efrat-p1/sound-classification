@@ -10,7 +10,7 @@ from audio_functions import *
 
 
 # functions
-def model_exec1(X,Y, test_size =0.25, random_state = 1, epochs=3, batch_size=50):
+def model_exec1(X,Y, test_size =0.25, random_state = 1, epochs=3, batch_size=50, save_model=False):
     
     Y = to_categorical(Y)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size = test_size, random_state = random_state)
@@ -33,7 +33,17 @@ def model_exec1(X,Y, test_size =0.25, random_state = 1, epochs=3, batch_size=50)
     model.fit(X_train, Y_train, epochs = epochs, batch_size = batch_size, validation_data = (X_test, Y_test))
 
     print(model.summary())
-
+    
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('score:  ', score)   
+    # if save_model:
+    # # serialize model to JSON
+    #     model_json = model.to_json()
+    #     with open("model.json", "w") as json_file:
+    #         json_file.write(model_json)
+    #     # serialize weights to HDF5
+    #     model.save_weights("model.h5")
+    #     print("Saved model to disk")
 
 
 def model_exec2(X,Y, test_size =0.25, random_state = 1, epochs=3, batch_size=50):
@@ -63,3 +73,6 @@ def model_exec2(X,Y, test_size =0.25, random_state = 1, epochs=3, batch_size=50)
     model.fit(X_train, Y_train, epochs = epochs, batch_size = batch_size, validation_data = (X_test, Y_test))
 
     print(model.summary())
+
+    score = model.evaluate(X_test, Y_test, verbose=0)
+    print('score:  ', score)
