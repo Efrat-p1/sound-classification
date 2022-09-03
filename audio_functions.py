@@ -6,10 +6,11 @@ from scipy.io import wavfile
 import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.fft import fft, fftfreq
+import librosa
 
-def get_spectrogram_data(path, fft_size=1024,overlap_ratio=0, restrict_freq=(0,11025)):
+def get_spectrogram_data(path, fft_size=1024,overlap_ratio=0, restrict_freq=(0,11025), samplerate_fixed=22050, n_mels=256):
 
-    samplerate, audiodata  = wavfile.read(path)               #44100
+    samplerate, audiodata  = wavfile.read(path)                 #44100
     data = audiodata.astype(float)
     
     #if "mono" the data is duplicated else the data is "streo"
@@ -17,10 +18,10 @@ def get_spectrogram_data(path, fft_size=1024,overlap_ratio=0, restrict_freq=(0,1
         data = audiodata.sum(axis=1) / 2
 
     N = len(data)  
-    time = N / samplerate                   #176400/44100 =time sec                  
+    time = N / samplerate                                       #176400/44100 =time sec                  
 
-    samplerate_fixed = 22050                        #22050*4 = 88200  #should get 22.05kHz
-    data = signal.resample(data, int(samplerate_fixed*time))  
+                        
+    data = signal.resample(data, int(samplerate_fixed*time))    #22050*4 = 88200  #should get 22.05kHz
     time = N/samplerate_fixed
     samplerate = samplerate_fixed
 
@@ -49,7 +50,11 @@ def get_spectrogram_data(path, fft_size=1024,overlap_ratio=0, restrict_freq=(0,1
     
     total = np.sum(Sxx)
     Sxx= Sxx/total
-    
+
+    mel_basis = librosa.filters.mel(sr=samplerate_fixed, n_fft=fft_size, n_mels=n_mels)
+    Sxx = np.einsum("...ft,mf->...mt", Sxx, mel_basis, optimize=True)
+
+
     Sxx_log = 10*np.log10(Sxx + 0.00001)
     Sxx_log = Sxx_log - Sxx_log.min()
     # Sxx_log = Sxx_log.T
@@ -110,17 +115,17 @@ def spec_plotting(path, fft_size=1024,overlap_ratio=0.25):
     plt.tight_layout()
     plt.show() 
 
-def get_df_spec_data(df, fft_size=1024,overlap_ratio=0.25):
+def get_df_spec_data(df, fft_size=1024,overlap_ratio=0.25, samplerate_fixed=22050, n_mels= 256):
 
     results = []
     for i, path in enumerate(df):
         if i% 50==0:
             print (round(i/df.shape[0]*100,0),"%" )
-
+        samplerate_fixed = 22050
         # print(i, " ", path)
-        Sxx_log, time, freq = get_spectrogram_data(path ,fft_size=fft_size,overlap_ratio=overlap_ratio)
+        Sxx_log, time, freq = get_spectrogram_data(path ,fft_size=fft_size,overlap_ratio=overlap_ratio, samplerate_fixed=samplerate_fixed,n_mels=n_mels)
         results.append(Sxx_log)
-    
+
     # return np.array(results)
     return results
 
@@ -136,18 +141,45 @@ def get_paths_lables_df(folder_name):
     return df
 
 
-def repeat_and_reshape(X_train, X_test,dup_size):
-    input_size = X_train.shape[1]
 
-    X_train_len = X_train.shape[0]
-    X_test_len =X_test.shape[0]
+def mean_and_repeate(X_train, X_test, dup_times = 16):
+    X_train_ = np.mean(X_train ,axis =2)
+    X_test_ = np.mean(X_test ,axis =2)    
 
-    X_train = np.repeat(X_train, dup_size, axis=1)
-    X_train = X_train.reshape(X_train_len, input_size, dup_size, 1)
+    input_size = X_train_.shape[1]
 
+    X_train_len = X_train_.shape[0]
+    X_test_len =X_test_.shape[0]
 
-    X_test = np.repeat(X_test, dup_size, axis=1)
-    X_test = X_test.reshape(X_test_len, input_size, dup_size, 1)
+    X_train_ = np.repeat(X_train_, dup_times, axis=1)
+    X_train_ = X_train_.reshape(X_train_len, input_size, dup_times, 1)
 
+    X_test_ = np.repeat(X_test_, dup_times, axis=1)
+    X_test_ = X_test_.reshape(X_test_len, input_size, dup_times, 1)
 
-    return (X_train, X_test)
+    return X_train_, X_test_
+
+def mean_and_fold(X_train, X_test, ratio="1:1"):
+    X_train_ = np.mean(X_train ,axis =2)
+    X_test_ = np.mean(X_test ,axis =2)
+
+    ratio_param1 =  int(ratio[0])
+    ratio_param2 =  int(ratio[-1])
+
+    if ratio == "1:1":
+        l = int(np.sqrt(X_test_.shape[1]))
+        w = int(np.sqrt(X_test_.shape[1]))
+    else:
+        print('Error in vector folding')
+
+    X_train = X_train_.reshape(X_train.shape[0], l, w, 1)
+    X_test = X_test_.reshape(X_test.shape[0], l, w, 1)
+
+    return X_train, X_test
+
+def spectrogram_matrix(X_train_, X_test_):
+
+    X_train = X_train_.reshape(X_train_.shape[0], X_train_.shape[1], X_train_.shape[2], 1)
+    X_test = X_test_.reshape(X_test_.shape[0], X_test_.shape[1], X_test_.shape[2], 1)
+
+    return X_train, X_test
